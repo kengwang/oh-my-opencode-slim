@@ -16,6 +16,7 @@ const CONTINUATION_PROMPT =
   '[Auto-continue: enabled - there are incomplete todos remaining. Continue with the next uncompleted item. Press Esc to cancel. If you need user input or review for the next item, ask instead of proceeding.]';
 const TODO_HYGIENE_INSTRUCTION_OPEN = '<instruction name="todo_hygiene">';
 const TODO_HYGIENE_INSTRUCTION_CLOSE = '</instruction>';
+const UNLIMITED_CONTINUATIONS = -1;
 
 // Suppress window after user abort (Esc/Ctrl+C) to avoid immediately
 // re-continuing something the user explicitly stopped
@@ -64,6 +65,22 @@ function isQuestion(text: string): boolean {
     return true;
   }
   return QUESTION_PHRASES.some((phrase) => lowerText.includes(phrase));
+}
+
+function isUnlimitedContinuations(maxContinuations: number): boolean {
+  return maxContinuations === UNLIMITED_CONTINUATIONS;
+}
+
+function continuationLimitDescription(maxContinuations: number): string {
+  return isUnlimitedContinuations(maxContinuations)
+    ? 'always (unlimited consecutive injections)'
+    : `up to ${maxContinuations} consecutive injections`;
+}
+
+function commandContinuationLimitDescription(maxContinuations: number): string {
+  return isUnlimitedContinuations(maxContinuations)
+    ? 'always/unlimited continuations'
+    : `up to ${maxContinuations} continuations`;
 }
 
 interface TodoItem {
@@ -453,7 +470,7 @@ export function createTodoContinuationHook(
       if (enabled) {
         state.suppressUntil = 0;
         log(`[${HOOK_NAME}] Auto-continue enabled`, { maxContinuations });
-        return `Auto-continue enabled. Will auto-continue for up to ${maxContinuations} consecutive injections.`;
+        return `Auto-continue enabled. Will auto-continue ${continuationLimitDescription(maxContinuations)}.`;
       }
 
       // Cancel any pending timer on disable
@@ -611,7 +628,10 @@ export function createTodoContinuationHook(
       }
 
       // Safety gate 4: below max continuations
-      if (state.consecutiveContinuations >= maxContinuations) {
+      if (
+        !isUnlimitedContinuations(maxContinuations) &&
+        state.consecutiveContinuations >= maxContinuations
+      ) {
         log(`[${HOOK_NAME}] Skipped: max continuations reached`, {
           sessionID,
           consecutive: state.consecutiveContinuations,
@@ -856,13 +876,13 @@ export function createTodoContinuationHook(
     if (hasIncompleteTodos) {
       output.parts.push(
         createInternalAgentTextPart(
-          `${CONTINUATION_PROMPT} [Auto-continue enabled: up to ${maxContinuations} continuations.]`,
+          `${CONTINUATION_PROMPT} [Auto-continue enabled: ${commandContinuationLimitDescription(maxContinuations)}.]`,
         ),
       );
     } else {
       output.parts.push(
         createInternalAgentTextPart(
-          `[Auto-continue: enabled for up to ${maxContinuations} continuations. No incomplete todos right now.]`,
+          `[Auto-continue: enabled for ${commandContinuationLimitDescription(maxContinuations)}. No incomplete todos right now.]`,
         ),
       );
     }

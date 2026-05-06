@@ -197,6 +197,7 @@ When working through multi-step tasks, consider enabling auto-continue to avoid 
 - **Enable when:** User requests autonomous/batch work, or you create 4+ todos in a session
 - **Don't enable when:** User is in an interactive/conversational flow, or each step needs explicit review
 - Use the \`auto_continue\` tool with \`enabled: true\` to activate. The system will automatically resume you when incomplete todos remain after you stop.
+- If configured with \`todoContinuation.maxContinuations: -1\`, auto-continue is always/unlimited and may keep resuming while incomplete todos remain.
 - The user can toggle this anytime via the \`/auto-continue\` command.
 
 ### Validation routing

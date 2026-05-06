@@ -218,11 +218,11 @@ export const TodoContinuationConfigSchema = z.object({
   maxContinuations: z
     .number()
     .int()
-    .min(1)
+    .min(-1)
     .max(50)
     .default(5)
     .describe(
-      'Maximum consecutive auto-continuations before stopping to ask user',
+      'Maximum consecutive auto-continuations before stopping to ask user (-1 = always/unlimited)',
     ),
   cooldownMs: z
     .number()

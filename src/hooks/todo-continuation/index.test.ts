@@ -105,6 +105,17 @@ describe('createTodoContinuationHook', () => {
       expect(result).toContain('up to 5');
     });
 
+    test('maxContinuations -1 reports unlimited mode', async () => {
+      const ctx = createMockContext();
+      const hook = createTodoContinuationHook(ctx, { maxContinuations: -1 });
+
+      const result = await hook.tool.auto_continue.execute({ enabled: true });
+
+      expect(result).toContain('Auto-continue enabled');
+      expect(result).toContain('always');
+      expect(result).toContain('unlimited');
+    });
+
     test('calling auto_continue execute with { enabled: false } disables', async () => {
       const ctx = createMockContext();
       const hook = createTodoContinuationHook(ctx);
@@ -892,6 +903,42 @@ describe('createTodoContinuationHook', () => {
       expect(ctx.client.session.prompt).not.toHaveBeenCalled();
     });
 
+    test('maxContinuations -1 keeps continuing past normal limits', async () => {
+      const ctx = createMockContext({
+        todoResult: {
+          data: [
+            { id: '1', content: 'todo1', status: 'pending', priority: 'high' },
+          ],
+        },
+        messagesResult: {
+          data: [
+            {
+              info: { role: 'assistant' },
+              parts: [{ type: 'text', text: 'Working...' }],
+            },
+          ],
+        },
+      });
+      const hook = createTodoContinuationHook(ctx, {
+        maxContinuations: -1,
+        cooldownMs: 50,
+      });
+
+      await hook.tool.auto_continue.execute({ enabled: true });
+
+      for (let i = 0; i < 3; i++) {
+        await hook.handleEvent({
+          event: {
+            type: 'session.idle',
+            properties: { sessionID: 'session-123' },
+          },
+        });
+        await delay(60);
+      }
+
+      expect(contCount(ctx.client.session.prompt)).toBe(3);
+    });
+
     test('abort suppress window → skip', async () => {
       const ctx = createMockContext({
         todoResult: {
@@ -1580,6 +1627,31 @@ describe('createTodoContinuationHook', () => {
         '[Auto-continue: enabled - there are incomplete todos remaining.',
       );
       expect(output.parts[0].text).toContain(SLIM_INTERNAL_INITIATOR_MARKER);
+    });
+
+    test('/auto-continue reports unlimited mode when maxContinuations is -1', async () => {
+      const ctx = createMockContext({
+        todoResult: {
+          data: [
+            {
+              id: '1',
+              content: 'todo1',
+              status: 'pending',
+              priority: 'high',
+            },
+          ],
+        },
+      });
+      const hook = createTodoContinuationHook(ctx, { maxContinuations: -1 });
+      const output = { parts: [] as Array<{ type: string; text?: string }> };
+
+      await hook.handleCommandExecuteBefore(
+        { command: 'auto-continue', sessionID: 'session-123', arguments: 'on' },
+        output,
+      );
+
+      expect(output.parts).toHaveLength(1);
+      expect(output.parts[0].text).toContain('always/unlimited');
     });
 
     test('/auto-continue enables but no continuation when all todos complete', async () => {

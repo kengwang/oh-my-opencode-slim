@@ -23,7 +23,8 @@ All of these must pass before continuation happens:
 - The session is the orchestrator
 - Incomplete todos exist
 - The last assistant message is not a question
-- The consecutive continuation count is under the limit
+- The consecutive continuation count is under the limit, unless
+  `maxContinuations` is `-1` (`always`/unlimited)
 - The session is not in the post-abort suppress window (5s)
 - No pending injection is already in flight
 
@@ -34,7 +35,7 @@ Configure it in `~/.config/opencode/oh-my-opencode-slim.json` or `~/.config/open
 ```jsonc
 {
   "todoContinuation": {
-    "maxContinuations": 5,      // Max consecutive auto-continuations (1–50)
+    "maxContinuations": 5,      // Max consecutive auto-continuations (-1 or 1–50; -1 = always)
     "cooldownMs": 3000,         // Delay before each continuation (0–30000)
     "autoEnable": false,        // Auto-enable when session has enough todos
     "autoEnableThreshold": 4    // Number of todos to trigger auto-enable

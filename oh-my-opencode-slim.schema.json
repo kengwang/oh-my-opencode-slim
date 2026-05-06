@@ -573,9 +573,9 @@
       "properties": {
         "maxContinuations": {
           "default": 5,
-          "description": "Maximum consecutive auto-continuations before stopping to ask user",
+          "description": "Maximum consecutive auto-continuations before stopping to ask user (-1 = always/unlimited)",
           "type": "integer",
-          "minimum": 1,
+          "minimum": -1,
           "maximum": 50
         },
         "cooldownMs": {
